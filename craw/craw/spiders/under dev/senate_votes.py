@@ -1,4 +1,3 @@
-from urlparse import urlparse
 import scrapy
 import logging
 from tabula import read_pdf

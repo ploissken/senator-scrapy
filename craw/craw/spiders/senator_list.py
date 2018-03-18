@@ -1,4 +1,3 @@
-from urlparse import urlparse
 from datetime import datetime
 import scrapy
 import logging
