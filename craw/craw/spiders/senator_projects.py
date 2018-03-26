@@ -14,11 +14,10 @@ class SenatorProjects(scrapy.Spider):
 
     
     def parse(self, response):
-        json_file = open("json_data/%s_proj.json" % poli_id, 'wb')
+        json_file = open("json_data/%s_proj.json" % poli_id, 'w')
         json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
             % (response.url, str(datetime.now())))
         request = scrapy.Request(response.url, callback=self.parse_authorship)        
-        request.meta['poli_id'] = poli_id
         request.meta['json_file'] = json_file
         yield request
 
@@ -63,7 +62,7 @@ class SenatorProjects(scrapy.Spider):
                 f.write(',\n');
                 logging.info('crawling next page: %s' % next_link)
                 yield scrapy.Request(next_link, callback=self.parse_authorship,
-                    meta={'auth_file': f, 'poli_id': poli_id})
+                    meta={'json_file': f, 'poli_id': poli_id})
         
         if last_page_found is False:
             #this is the last page, close file

@@ -1,5 +1,6 @@
 import scrapy
 import logging
+import os
 from datetime import datetime
 
 class SenatorBiography(scrapy.Spider):
@@ -14,6 +15,7 @@ class SenatorBiography(scrapy.Spider):
 
     # grab candidate info
     def parse(self, response):
+        logging.warning("*****(%s)" % os.getcwd())
         pol_name = "FIXME"
         htmlfile = "html_data/%s_bio.html" % pol_id
         jsonfile = open("json_data/%s_bio.json" % pol_id, 'wb')
