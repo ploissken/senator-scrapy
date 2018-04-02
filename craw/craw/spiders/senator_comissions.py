@@ -8,9 +8,9 @@ class SenatorComissions(scrapy.Spider):
 
     #aecim
     global poli_id
-    poli_id = "391"
+    poli_id = "3398"
 
-    start_urls = [base_url % "391"]
+    start_urls = [base_url % poli_id]
 
     
     def parse(self, response):
@@ -30,7 +30,7 @@ class SenatorComissions(scrapy.Spider):
         for com in comm_list:
             try:
                 com_link = com.css('a::attr(href)').extract_first().encode('utf-8')
-                com_name = com.css('a::text').extract_first().encode('utf-8')
+                com_name = com.css('a::text').extract_first().encode('utf-8').replace('"', "'")
                 com_start = com.css('td::text')[0].extract().encode('utf-8')
                 com_end = com.css('td::text')[1].extract().encode('utf-8')
                 com_function = com.css('td::text')[2].extract().encode('utf-8')

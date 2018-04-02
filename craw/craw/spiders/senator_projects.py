@@ -8,7 +8,7 @@ class SenatorProjects(scrapy.Spider):
     
     #aecim
     global poli_id
-    poli_id = "391"
+    poli_id = "3398"
 
     start_urls = [base_url % poli_id]
 

@@ -22,10 +22,10 @@ class SenatorResourcesCrawler(scrapy.Spider):
     base_url = 'http://www6g.senado.leg.br/transparencia/sen/%s/?ano=%s#conteudo_transparencia'
 
     global poli_id
-    poli_id = "391"
+    poli_id = "3398"
 
     name = "senator-resources"
-    start_urls = [base_url % ("391", "2018")]
+    start_urls = [base_url % (poli_id, "2018")]
 
     def parse(self, response):
         res_file = open('json_data/%s_resources.json' % poli_id, 'wb')
@@ -58,14 +58,14 @@ class SenatorResourcesCrawler(scrapy.Spider):
             r = SenatorResource()
             descc = res.css('td::text')[0].extract().replace(u'\xa0', u'')
             r.description = descc.encode('utf-8').strip()
-            r.value =  res.css('td a span::text')[0].extract().encode('utf-8')
+            r.value =  res.css('td a span::text')[0].extract().encode('utf-8').replace(".", "").replace(",", ".")
             global ceap_list
             ceap_list.append(r)
 
         for com in response.xpath('//div[@id="collapse-ceaps"]//tfoot//tr'):
             ceap_total = com.css('td::text')[1].extract().encode('utf-8')
 
-        logging.info("******(%s)******" % year)
+
         #outros gastos
         for res in response.xpath('//div[@id="collapse-outros-gastos"]//tbody//tr[@class="sen_tabela_linha_grupo"]'):
             r = SenatorResource()
@@ -88,7 +88,7 @@ class SenatorResourcesCrawler(scrapy.Spider):
                     except:
                         pass
             finally:
-                r.value = (r0+r1+r2).strip()
+                r.value = (r0+r1+r2).strip().replace(".", "").replace(",", ".")
                 
                 global other_list
                 other_list.append(r)
@@ -101,8 +101,8 @@ class SenatorResourcesCrawler(scrapy.Spider):
         for res in response.xpath('//div[@id="collapse-pessoal"]//tbody//tr'):
             r = SenatorResource()
             r.description = res.css('td span::text')[0].extract().encode('utf-8')
-            r.value = res.css('td a::text')[0].extract().replace(u'\xa0', u'').replace(" pessoa(s)", "").encode('utf-8')
-            
+            rarar = res.css('td a::text')[0].extract().replace(u'\xa0', u'').replace(" pessoa(s)", "").encode('utf-8')
+            r.value = rarar
             global ppl_list
             ppl_list.append(r)
 
@@ -115,31 +115,20 @@ class SenatorResourcesCrawler(scrapy.Spider):
         
 
         #print it all to file
-        s_file.write('\t\t{"year": "%s",\n' % year)
-        s_file.write('\t\t "ceap": [\n')
         for c_res in ceap_list:
-            s_file.write('\t\t\t\t{"description": "%s", "value": "%s"}' %
-                (c_res.description, c_res.value))
-            if(c_res == ceap_list[-1]):
-                s_file.write("\n\t\t ],\n")
-            else:
-                s_file.write(",\n")
+            s_file.write('\t\t\t{"year": "%s", "type": "ceap", "description": "%s", "value": "%s"},\n' %
+                (year.encode('utf-8'), c_res.description, c_res.value))
 
-        s_file.write('\t\t "other": [\n')
-        for c_res in other_list:
-            s_file.write('\t\t\t\t{"description": "%s", "value": "%s"}' %
-                (c_res.description, c_res.value))
-            if(c_res == other_list[-1]):
-                s_file.write("\n\t\t ],\n")
-            else:
-                s_file.write(",\n")
+        for o_res in other_list:
+            s_file.write('\t\t\t{"year": "%s", "type": "other", "description": "%s", "value": "%s"},\n' %
+                (year.encode('utf-8'), o_res.description, o_res.value))
 
-        s_file.write('\t\t "people": [\n')
-        for c_res in ppl_list:
-            s_file.write('\t\t\t\t{"description": "%s", "value": "%s"}' %
-                (c_res.description, c_res.value.split()))
-            if(c_res == ppl_list[-1]):
-                s_file.write("\n\t\t ]\n")
+
+        for p_res in ppl_list:
+            s_file.write('\t\t\t{"year": "%s", "type": "people", "description": "%s", "value": "%s"}' %
+                (year.encode('utf-8'), p_res.description, p_res.value.split()))
+            if(p_res == ppl_list[-1]):
+                pass
             else:
                 s_file.write(",\n")
 
@@ -156,9 +145,9 @@ class SenatorResourcesCrawler(scrapy.Spider):
 
         if year_count == 0:
             #close file
-            s_file.write('\t\t}\n\t]\n}')
+            s_file.write('\n\t]\n}')
         else:
-            s_file.write('\t\t},\n')
+            s_file.write(',\n')
 
 
 
