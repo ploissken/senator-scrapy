@@ -1,9 +1,11 @@
 import scrapy
+import json
 import logging
 from datetime import datetime
 
 class SenatorComissions(scrapy.Spider):
     name = 'senator-comissions'
+    global base_url
     base_url = 'http://www25.senado.leg.br/web/senadores/senador/-/perfil/%s/comissoes/1'
 
     #aecim
@@ -14,13 +16,36 @@ class SenatorComissions(scrapy.Spider):
 
     
     def parse(self, response):
-        json_file = open("json_data/%s_comm.json" % poli_id, 'wb')
-        json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
-            % (response.url, str(datetime.now())))
-        request = scrapy.Request(response.url, callback=self.parse_comissions)        
-        request.meta['poli_id'] = poli_id
-        request.meta['json_file'] = json_file
-        yield request
+        try:
+            if(self.all):
+                sen_list = json.load(open('json_data/senators_list.json'))
+                for sen_id in sen_list['data']:
+                    json_file = open("json_data/comission/%s.json" % sen_id['id'], 'wb')
+                    json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
+                        % (response.url, str(datetime.now())))
+                    request = scrapy.Request(base_url % sen_id['id'], callback=self.parse_comissions)        
+                    request.meta['poli_id'] = sen_id['id']
+                    request.meta['json_file'] = json_file
+                    yield request
+        except AttributeError:
+            #grab candidate info for variable id (-a pId=arg_id)
+            try:
+                logging.info("hi, how are u?")
+                json_file = open("json_data/comission/%s.json" % self.pId, 'wb')
+                json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
+                    % (response.url, str(datetime.now())))
+                request = scrapy.Request(base_url % self.pId, callback=self.parse_comissions)        
+                request.meta['poli_id'] = self.pId
+                request.meta['json_file'] = json_file
+                yield request
+            except AttributeError:
+                json_file = open("json_data/comission/%s.json" % poli_id, 'wb')
+                json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
+                    % (response.url, str(datetime.now())))
+                request = scrapy.Request(response.url, callback=self.parse_comissions)        
+                request.meta['poli_id'] = poli_id
+                request.meta['json_file'] = json_file
+                yield request
 
     # recursively grab comissions info
     def parse_comissions(self, response):
