@@ -26,6 +26,7 @@ class SenatorProjects(scrapy.Spider):
                         % (response.url, str(datetime.now())))
                     request = scrapy.Request(base_url % sen_id['id'], callback=self.parse_authorship)        
                     request.meta['json_file'] = json_file
+                    request.meta['p_id'] = sen_id['id']
                     yield request
         
         except AttributeError:
@@ -36,6 +37,7 @@ class SenatorProjects(scrapy.Spider):
                     % (response.url, str(datetime.now())))
                 request = scrapy.Request(base_url % self.pId, callback=self.parse_authorship)        
                 request.meta['json_file'] = json_file
+                request.meta['p_id'] = self.pId
                 yield request
 
 
@@ -47,6 +49,7 @@ class SenatorProjects(scrapy.Spider):
                     % (response.url, str(datetime.now())))
                 request = scrapy.Request(base_url % poli_id, callback=self.parse_authorship)        
                 request.meta['json_file'] = json_file
+                request.meta['p_id'] = poli_id
                 yield request
 
 
@@ -58,7 +61,7 @@ class SenatorProjects(scrapy.Spider):
     # recursively grab projects info
     def parse_authorship(self, response):
         f = response.meta['json_file']
-
+        p_id = response.meta['p_id']
         proj_list = response.xpath('//div[@class="div-zebra"]//div//dl')
         for proj in proj_list:
             try:
@@ -75,7 +78,7 @@ class SenatorProjects(scrapy.Spider):
                 proj_date = p_da[p_da.find('<dd>')+4:p_da.rfind('</dd>')].encode('utf-8')
 
             except:
-                logging.critical("something wrong parsing projects authorship for poli_id: %s proj_id: %s" % (poli_id, proj_id))
+                logging.critical("something wrong parsing projects authorship for p_id: %s proj_id: %s" % (p_id, proj_id))
             
             finally:
                 if proj is not proj_list[-1]:
@@ -96,7 +99,7 @@ class SenatorProjects(scrapy.Spider):
                 f.write(',\n');
                 logging.info('crawling next page: %s' % next_link)
                 yield scrapy.Request(next_link, callback=self.parse_authorship,
-                    meta={'json_file': f, 'poli_id': poli_id})
+                    meta={'json_file': f, 'p_id': p_id})
         
         if last_page_found is False:
             #this is the last page, close file

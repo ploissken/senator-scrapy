@@ -24,10 +24,10 @@ class SenatorResourcesCrawler(scrapy.Spider):
     base_url = 'http://www6g.senado.leg.br/transparencia/sen/%s/?ano=%s#conteudo_transparencia'
 
     global poli_id
-    poli_id = "3398"
+    poli_id = "0"
 
     name = "senator-resources"
-    start_urls = [base_url % (poli_id, "2018")]
+    start_urls = [base_url % (poli_id, "0")]
 
     def parse(self, response):
         #grab info for everyone (-a all=true)
@@ -35,58 +35,42 @@ class SenatorResourcesCrawler(scrapy.Spider):
             if(self.all):
                 sen_list = json.load(open('json_data/senators_list.json'))
                 for sen_id in sen_list['data']:
-                    res_file = open('json_data/resources/%s.json' % sen_id['id'], 'wb')
-                    res_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n' %
-                        (response.url, str(datetime.now())))
-                    #for each mandate year
-                    mandate_years = response.xpath('//div[@id="conteudo_transparencia"]//ul[@class="dropdown-menu"]//li')
-                    for resources_year in mandate_years.css('li a::attr(href)').extract():
-                        year = resources_year[resources_year.rfind('=')+1:resources_year.rfind('#')]
-                        global year_count
-                        year_count += 1
-                        request = scrapy.Request(base_url % (sen_id['id'], year), callback=self.resources_parser)
-                        request.meta['res_file'] = res_file
-                        request.meta['year'] = year
-                        yield request
+                    request = scrapy.Request(base_url % (sen_id['id'], "2018"), callback=self.resources_caller)
+                    request.meta['p_id'] = sen_id['id']
+                    yield request
         
         except AttributeError:
             #grab candidate info for variable id (-a pId=arg_id)
             try:
-                res_file = open('json_data/resources/%s.json' % self.pId, 'wb')
-                res_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n' %
-                    (response.url, str(datetime.now())))
-                #for each mandate year
-                mandate_years = response.xpath('//div[@id="conteudo_transparencia"]//ul[@class="dropdown-menu"]//li')
-                for resources_year in mandate_years.css('li a::attr(href)').extract():
-                    year = resources_year[resources_year.rfind('=')+1:resources_year.rfind('#')]
-                    global year_count
-                    year_count += 1
-                    request = scrapy.Request(base_url % (self.pId, year), callback=self.resources_parser)
-                    request.meta['res_file'] = res_file
-                    request.meta['year'] = year
-                    yield request
-
-
+                request = scrapy.Request(base_url % (self.pId, "2018"), callback=self.resources_caller)
+                request.meta['p_id'] = self.pId
+                yield request
 
 
             except AttributeError:
-                res_file = open('json_data/resources/%s.json' % poli_id, 'wb')
-                res_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n' %
-                        (response.url, str(datetime.now())))
-                
+                request = scrapy.Request(base_url % (poli_id, "2018"), callback=self.resources_caller)
+                request.meta['p_id'] = poli_id
+                yield request
 
-                #for each mandate year
-                mandate_years = response.xpath('//div[@id="conteudo_transparencia"]//ul[@class="dropdown-menu"]//li')
-                for resources_year in mandate_years.css('li a::attr(href)').extract():
-                    year = resources_year[resources_year.rfind('=')+1:resources_year.rfind('#')]
-                    global year_count
-                    year_count += 1
-                    request = scrapy.Request(base_url % (poli_id, year), callback=self.resources_parser)
-                    request.meta['res_file'] = res_file
-                    request.meta['year'] = year
-                    yield request
+    def resources_caller(self, response):
+        p_id = response.meta['p_id']
+        res_file = open('json_data/resources/%s.json' % p_id, 'wb')
+        res_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n' %
+                (response.url, str(datetime.now())))
+        
 
-
+        #for each mandate year
+        mandate_years = response.xpath('//div[@id="conteudo_transparencia"]//ul[@class="dropdown-menu"]//li')
+        logging.info(response.url)
+        for resources_year in mandate_years.css('li a::attr(href)').extract():
+            year = resources_year[resources_year.rfind('=')+1:resources_year.rfind('#')]
+            logging.info("calling for " + year)
+            global year_count
+            year_count += 1
+            request = scrapy.Request(base_url % (p_id, year), callback=self.resources_parser, dont_filter=True)
+            request.meta['res_file'] = res_file
+            request.meta['year'] = year
+            yield request
 
 
 
@@ -94,8 +78,8 @@ class SenatorResourcesCrawler(scrapy.Spider):
     def resources_parser(self, response):
         s_file = response.meta['res_file']
         year = response.meta['year']
-        
-
+        logging.info(response.url)
+        logging.info("yeah for " + year)
 
 
         #cotas para exercicio de atividade parlamentar
@@ -188,6 +172,7 @@ class SenatorResourcesCrawler(scrapy.Spider):
         global year_count
         year_count -= 1
 
+        logging.info("*(*(*" + str(year_count))
         if year_count == 0:
             #close file
             s_file.write('\n\t]\n}')
