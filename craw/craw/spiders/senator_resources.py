@@ -17,8 +17,8 @@ class SenatorResourcesCrawler(scrapy.Spider):
     ceap_list = []
     ppl_list = []
 
-    global year_count
-    year_count = 0
+    global id_year_count
+    id_year_count = {}
 
     global base_url
     base_url = 'http://www6g.senado.leg.br/transparencia/sen/%s/?ano=%s#conteudo_transparencia'
@@ -62,22 +62,28 @@ class SenatorResourcesCrawler(scrapy.Spider):
         #for each mandate year
         mandate_years = response.xpath('//div[@id="conteudo_transparencia"]//ul[@class="dropdown-menu"]//li')
         logging.info(response.url)
+        local_year_count = len(mandate_years.css('li a::attr(href)').extract());
+        
+        global id_year_count
+        id_year_count[p_id] = local_year_count
+
+        logging.info(local_year_count)
         for resources_year in mandate_years.css('li a::attr(href)').extract():
             year = resources_year[resources_year.rfind('=')+1:resources_year.rfind('#')]
-            logging.info("calling for " + year)
-            global year_count
-            year_count += 1
             request = scrapy.Request(base_url % (p_id, year), callback=self.resources_parser, dont_filter=True)
             request.meta['res_file'] = res_file
             request.meta['year'] = year
+            request.meta['p_id'] = p_id
             yield request
 
+        
 
 
     #grab all the resources list info
     def resources_parser(self, response):
         s_file = response.meta['res_file']
         year = response.meta['year']
+        p_id = response.meta['p_id']
         logging.info(response.url)
         logging.info("yeah for " + year)
 
@@ -169,8 +175,10 @@ class SenatorResourcesCrawler(scrapy.Spider):
         global ppl_list
         ppl_list = []
 
-        global year_count
+        global id_year_count
+        year_count = id_year_count[p_id]
         year_count -= 1
+        id_year_count[p_id] = year_count
 
         logging.info("*(*(*" + str(year_count))
         if year_count == 0:
