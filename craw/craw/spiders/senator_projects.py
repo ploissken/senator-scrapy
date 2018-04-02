@@ -1,9 +1,11 @@
 import scrapy
 import logging
+import json
 from datetime import datetime
 
 class SenatorProjects(scrapy.Spider):
     name = 'senator-projects'
+    global base_url
     base_url = 'http://www25.senado.leg.br/web/atividade/materias/-/materia/autor/%s/p/1/o/1'
     
     #aecim
@@ -14,12 +16,44 @@ class SenatorProjects(scrapy.Spider):
 
     
     def parse(self, response):
-        json_file = open("json_data/%s_proj.json" % poli_id, 'w')
-        json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
-            % (response.url, str(datetime.now())))
-        request = scrapy.Request(response.url, callback=self.parse_authorship)        
-        request.meta['json_file'] = json_file
-        yield request
+#grab info for everyone (-a all=true)
+        try:
+            if(self.all):
+                sen_list = json.load(open('json_data/senators_list.json'))
+                for sen_id in sen_list['data']:
+                    json_file = open("json_data/projects/%s.json" % sen_id['id'], 'w')
+                    json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
+                        % (response.url, str(datetime.now())))
+                    request = scrapy.Request(base_url % sen_id['id'], callback=self.parse_authorship)        
+                    request.meta['json_file'] = json_file
+                    yield request
+        
+        except AttributeError:
+            #grab candidate info for variable id (-a pId=arg_id)
+            try:
+                json_file = open("json_data/projects/%s.json" % self.pId, 'w')
+                json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
+                    % (response.url, str(datetime.now())))
+                request = scrapy.Request(base_url % self.pId, callback=self.parse_authorship)        
+                request.meta['json_file'] = json_file
+                yield request
+
+
+
+            #default run with hard coded id
+            except AttributeError:
+                json_file = open("json_data/projects/%s.json" % poli_id, 'w')
+                json_file.write('{\n\t"json-ver": "0.1.0",\n\t"extraction-url": "%s",\n\t"extraction-datetime": "%s",\n\t"data": [\n'
+                    % (response.url, str(datetime.now())))
+                request = scrapy.Request(base_url % poli_id, callback=self.parse_authorship)        
+                request.meta['json_file'] = json_file
+                yield request
+
+
+
+
+
+
 
     # recursively grab projects info
     def parse_authorship(self, response):
