@@ -1,6 +1,11 @@
 from datetime import datetime
 import scrapy
 import logging
+import os
+
+def mkdir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 class SenatorSpidey(scrapy.Spider):
     name = "senators-list"
@@ -9,9 +14,10 @@ class SenatorSpidey(scrapy.Spider):
         'http://www25.senado.leg.br/web/senadores/em-exercicio/-/e/por-nome',
     ]
 
-
     #parse list of elected senators
     def parse(self, response):
+        mkdir('html_data')
+        mkdir('json_data')
         filename = 'html_data/senators_list.html'
         fjson = open("json_data/senators_list.json", 'wb')
         with open(filename, 'wb') as f:
@@ -36,4 +42,3 @@ class SenatorSpidey(scrapy.Spider):
                     else:
                         fjson.write('\t\t{"name": "%s", "id": "%s", "party": "%s", "state": "%s", "email": "%s"}\n\t]\n}' %
                             (pol_name, pol_id, pol_party, pol_state, pol_email))
-
