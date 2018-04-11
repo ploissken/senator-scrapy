@@ -1,0 +1,5 @@
+*.pyc
+
+; Crawled data
+craw/html_data
+craw/json_data
