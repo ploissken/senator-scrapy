@@ -6,5 +6,6 @@ First, build the Docker image with:
 
 Then run `scrapy` with
 
-    docker-compose run --rm python scrapy list
     docker-compose run --rm python scrapy
+    docker-compose run --rm python scrapy list
+    docker-compose run --rm python scrapy crawl senators-list
